@@ -6,7 +6,7 @@ on:
       MANIFEST_BRANCH:
         description: 'PBRP Manifest Branch'
         required: true
-        default: ''
+        default: 'android-12.1'
         type: choice
         options:
         - android-14.0
@@ -15,23 +15,23 @@ on:
       DEVICE_TREE:
         description: 'Custom Recovery Tree' # Your already made Device Tree for TWRP
         required: true
-        default: 'https://github.com/enter_username/repo_name'
+        default: 'https://github.com/Kyros70/android_device_freeyond_m5a_twrp'
       DEVICE_TREE_BRANCH:
         description: 'Your Custom Recovery Tree Branch' # Your Device Tree Branch, make sure it's right.
         required: true
-        default: 'main'
+        default: 'android-12.1'
       DEVICE_NAME:
         description: 'Specify your Device Codename' # As is, just like your PRODUCT_DEVICE in your device tree.
         required: true
-        default: '7304X'
+        default: 'M5A'
       DEVICE_PATH:
         description: 'Specify your Device Path (Check the DEVICE_PATH in BoardConfig.mk)' # As is, just like your DEVICE_PATH in your BoardConfig.mk
         required: true
-        default: 'device/device`s_company/Codename'
+        default: 'device/chinoe/M5A'
       BUILD_TARGET:
         description: 'Specify your Build Target (choose "pbrp" instead of "recovery" for Android 11 or above)' # Pick among boot, recovery and vendor_boot
         required: true
-        default: 'recovery'
+        default: 'vendorboot'
         type: choice
         options:
         - pbrp
@@ -140,13 +140,19 @@ jobs:
       if: env.CHECK_LEGACY_BRANCH == 'true'
       run: |
         sudo apt-get install python2 python-is-python2
-
+        
     - name: Fixed Missing Fonts
       run: |
         cd android-recovery
-        mkdir external/noto-fonts/other && cd external/noto-fonts/other
+        mkdir -p external/noto-fonts/other && cd external/noto-fonts/other
         wget https://github.com/cd-Crypton/custom-recovery-extras/raw/main/missing-font.zip
         unzip -o missing-font.zip
+
+    - name: Apply graphics_drm.cpp fix
+      run: |
+        curl -fL "https://raw.githubusercontent.com/kyros70/android_bootable_recovery/android-12.1/minuitwrp/graphics_drm.cpp" \
+          -o "${{ github.workspace }}/android-recovery/bootable/recovery/minuitwrp/graphics_drm.cpp"
+        echo "Patched graphics_drm.cpp"
 
     - name: Building PitchBlack
       run: |
@@ -159,7 +165,7 @@ jobs:
             lunch ${{ env.DEVICE_MAKEFILE }}-eng && mka ${{ inputs.BUILD_TARGET }}
         fi
         popd
-
+          
     - name: Set Build Date # Needed for gh-releases
       run: |
         echo "BUILD_DATE=$(TZ=UTC date +%Y%m%d)" >> $GITHUB_ENV

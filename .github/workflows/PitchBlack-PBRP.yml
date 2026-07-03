@@ -170,12 +170,11 @@ jobs:
       run: |
         echo "BUILD_DATE=$(TZ=UTC date +%Y%m%d)" >> $GITHUB_ENV
 
-   
     - name: Check if the recovery exists
       if: always()
       run: |
-        img_file=$(find "${{ env.OUTPUT_DIR }}" -name "*.img" -print -quit)
-        zip_file=$(find "${{ env.OUTPUT_DIR }}" -name "PBRP*.zip" -print -quit)
+        img_file=$(find "${{ env.OUTPUT_DIR }}" -name "*vendor*.img" -print -quit)
+        zip_file=$(find "${{ env.OUTPUT_DIR }}" -name "*.zip" -print -quit)
         if [ -f "$img_file" ]; then
             echo "CHECK_IMG_IS_OK=true" >> $GITHUB_ENV
             echo "MD5_IMG=$(md5sum "$img_file" | cut -d ' ' -f 1)" >> $GITHUB_ENV
@@ -190,23 +189,21 @@ jobs:
         fi
 
     - name: Upload to Release
-      if: always() && (env.CHECK_IMG_IS_OK == 'true' || env.CHECK_ZIP_IS_OK == 'true')
+      if: env.CHECK_IMG_IS_OK == 'true'
       uses: softprops/action-gh-release@master
       with:
         files: |
-          if [ "${{ inputs.BUILD_TARGET }}" != "pbrp" ]; then
-            ${{ env.OUTPUT_DIR }}/${{ inputs.BUILD_TARGET }}*.img
-          else
-            ${{ env.OUTPUT_DIR }}/recovery*.img
-          fi
-          ${{ env.OUTPUT_DIR }}/PBRP*.zip
+          ${{ env.OUTPUT_DIR }}/*vendor*.img
+          ${{ env.OUTPUT_DIR }}/*.img
+          ${{ env.OUTPUT_DIR }}/*.zip
           ${{ env.OUTPUT_DIR }}/ramdisk-recovery.*
-        name: Unofficial PBRP for ${{ inputs.DEVICE_NAME }} // ${{ env.BUILD_DATE }}
+        name: PitchBlack for ${{ inputs.DEVICE_NAME }} // ${{ env.BUILD_DATE }}
         tag_name: ${{ github.run_id }}
         body: |
           Build: ${{ inputs.MANIFEST_BRANCH }}
           Device: [Device Tree/Branch](${{ inputs.DEVICE_TREE }}/tree/${{ inputs.DEVICE_TREE_BRANCH }})
-          Commit: Most recent [commit](${{ inputs.DEVICE_TREE }}/commit/${{ env.COMMIT_ID }}) during building.
+          MD5 (img): ${{ env.MD5_IMG }}
+          MD5 (zip): ${{ env.MD5_ZIP }}
         prerelease: true
 
     - name: Run LDCheck
